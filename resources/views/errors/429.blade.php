@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@php($retry = isset($exception) ? ($exception->getHeaders()['Retry-After'] ?? null) : null)
+@section('code', 'Error 429')
+@section('title', 'Too many requests')
+@section('message', 'Please wait '.($retry ? $retry.' seconds' : 'a minute').' and try again.')
