@@ -14,7 +14,7 @@ Before and after screenshots are in `docs/screenshots/redesign/{before,after}` (
 
 | Content | Layout |
 | --- | --- |
-| Services | Numbered editorial rows |
+| Services | Shared icon cards (`x-public.service-card`) |
 | Packages | Pricing columns; a featured package is shown inverted (navy) |
 | Projects | Media-first cards, with no box around the text |
 | Process and values | Numbered timeline columns |
@@ -83,13 +83,13 @@ All buttons are pill-shaped (`border-radius: 999px`), set in Inter 600 with tigh
 - **Section heading** (`x-public.section-heading`): eyebrow, title and optional intro, with an optional right-aligned action.
 - **Home:**
   1. Typography hero: eyebrow, headline with the brand's cyan full stop, subtitle and two large CTAs, with the credibility items as a numbered list in the right columns. On phones these stack.
-  2. Services as numbered rows.
+  2. Services as icon cards: 4 columns on desktop, 2 on tablet and phone.
   3. Two large project cards.
   4. Package columns.
   5. About statement split.
   6. Process timeline.
   7. Navy CTA band.
-- **Services:** numbered rows with the deliverables checklist. **Service detail:** narrative with a vertical numbered engagement timeline, a sticky deliverables panel with its CTA, and related packages and projects.
+- **Services:** a 2-column grid of the same cards at every width, with deliverables shown from 768px. **Service detail:** narrative with a vertical numbered engagement timeline, a sticky deliverables panel with its CTA, and related packages and projects.
 - **Packages:** pricing columns, three across, or a balanced 2×2 when there is an even number. The featured package is inverted to navy. "Not included" uses a native disclosure. A custom-scope band follows.
 - **Projects:** horizontally scrollable pill filters with `aria-current`, a 1 / 2 / 3-column media grid, and pill previous/next pagination. **Case study:** the cover overlaps the navy header; numbered narrative sections sit beside a sticky project-facts panel; then the gallery and related work.
 - **About:** story split, navy mission statement band, founder cards (initials until approved portraits exist), numbered values and process.
@@ -98,11 +98,34 @@ All buttons are pill-shaped (`border-radius: 999px`), set in Inter 600 with tigh
 - **Errors (403 / 404 / 419 / 429 / 500 / 503):** navy page with the logo, eyebrow code, title, message and two actions. No stack traces.
 - **Footer:** logo lockup and coverage text, Explore / Work with us / Get in touch columns (only filled contact details and social links are shown), legal links only when published.
 
+## Cards and tiles (refinement 2026-10-09)
+
+**Service card (`components/public/service-card`).** The homepage and Services page share one component:
+- A 40–48 px icon tile with a blue-to-cyan tint and inset ring; the icon comes from the service's allowlisted `icon_key`.
+- Title (Manrope 700; 15 px on narrow phones, 18 px from 640 px, 20 px from 768 px) with `hyphens: auto` so long words wrap without clipping.
+- Summary in 14–15 px muted text.
+- An always-visible **"Explore service →"** link. The arrow flows with the last word, so it never strands on its own line.
+- The whole card is clickable through that single link, with a keyboard focus ring on the card (`has-[a:focus-visible]`). Hover only lifts the card; no action depends on hover.
+- Padding is 14 px on phones, 20 px on small tablets and 28 px from 768 px.
+- The `detailed` variant (Services page) adds a deliverables checklist from 768 px. On phones the summary is clamped to 5 lines; full detail lives on the service page.
+
+**Contact tile (`components/public/contact-tile`).** Used for "Other ways to reach us" on the Contact page, in two columns at every width:
+- Stacked layout: a 32 px icon tile, a 12 px uppercase label, then a 14–15 px value with hairline border and hover/focus states.
+- Email and phone use `mailto:`/`tel:`; WhatsApp opens in a new tab with a screen-reader notice; consultation links to the booking page; location is static and spans both columns.
+- Only options configured in Admin → Settings render.
+- Values are escaped, then given line-break opportunities after `@` and `.`, with `overflow-wrap: anywhere` as a last resort, so long emails wrap cleanly.
+
+**Icons.** A single in-house stroke set (`components/icon`): 24 px grid, 1.75 stroke, round caps and joins. Icons are always `aria-hidden`, and every icon-only control carries a text label. No emoji or mixed icon libraries.
+
+**Sticky header.** The header takes up space in the page flow (so it never covers the first heading), and `html { scroll-padding-top: 5.5rem }` keeps in-page targets such as `#main` clear of it. Verified at 320, 375, 390, 768 and 1440 px.
+
+Screenshots are in `docs/screenshots/refinement/`: Home, Services and Contact at 1440, 768, 390 and 320 px, plus close-ups of the phone service grid and contact tiles.
+
 ## Removed in this refresh
 
 - The decorative bridge hero illustration (`components/public/hero-art`).
 - The FAQ feature (public sections, admin module, data and seeds), per the owner's instruction.
-- The old `page-band` and `service-card` components, replaced by `page-header` and `service-row`.
+- The old `page-band` component, replaced by `page-header`. The interim numbered `service-row` was itself replaced by the new shared `service-card` in the refinement.
 
 ## Accessibility and verification standards
 

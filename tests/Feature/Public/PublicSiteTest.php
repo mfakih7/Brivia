@@ -15,6 +15,7 @@ use App\Models\Project;
 use App\Models\ProjectCategory;
 use App\Models\ProjectMedia;
 use App\Models\Service;
+use App\Models\SiteSetting;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
@@ -216,6 +217,40 @@ class PublicSiteTest extends TestCase
         $this->get('/admin/faqs')->assertNotFound();
         $this->get('/admin')->assertDontSee('FAQs');
         $this->get('/admin/homepage')->assertOk()->assertDontSee('faq_heading', false);
+    }
+
+    public function test_service_cards_are_shared_and_link_to_detail_pages(): void
+    {
+        Service::where('slug', 'new-products')->first()->markPublished();
+
+        foreach (['/', '/services'] as $uri) {
+            $this->get($uri)->assertOk()
+                ->assertSee('Explore service<span class="sr-only">: New Products</span>', false)
+                ->assertSee('href="'.route('services.show', 'new-products').'"', false);
+        }
+        $this->get('/services')->assertSee('Typical deliverables')->assertSee('Four ways we can help');
+    }
+
+    public function test_contact_tiles_show_only_configured_options_and_escape_values(): void
+    {
+        $this->get('/contact')->assertOk()
+            ->assertSee('Request a time')
+            ->assertDontSee('mailto:', false)
+            ->assertDontSee('tel:', false)
+            ->assertDontSee('Chat with us');
+
+        SiteSetting::current()->fill([
+            'email' => 'hello@brivia.example', 'phone' => '+961 1 234 567',
+            'whatsapp_url' => 'https://wa.me/9611234567', 'address' => 'Beirut <b>HQ</b>',
+        ])->save();
+
+        $this->get('/contact')->assertOk()
+            ->assertSee('href="mailto:hello@brivia.example"', false)
+            ->assertSee('hello@<wbr>brivia.<wbr>example', false)
+            ->assertSee('href="tel:+9611234567"', false)
+            ->assertSee('href="https://wa.me/9611234567"', false)->assertSee('Chat with us<span class="sr-only"> (opens in a new tab)</span>', false)
+            ->assertSee('Beirut &lt;b&gt;HQ&lt;/b&gt;', false)
+            ->assertDontSee('<b>HQ</b>', false);
     }
 
     public function test_home_hero_is_typography_led_without_illustration(): void

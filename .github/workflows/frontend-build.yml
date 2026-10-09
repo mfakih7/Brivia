@@ -1,0 +1,146 @@
+# Builds BRIVIA's frontend assets for one exact commit and publishes them as a GitHub release
+# tagged build-<full commit SHA>. The cPanel deployment (scripts/deploy.sh) downloads ONLY the
+# release that matches the commit it is deploying, never "latest".
+#
+# Release sequence: push main -> wait for this workflow to succeed -> cPanel "Update from Remote"
+# -> cPanel "Deploy HEAD Commit". Nothing is deployed automatically by this workflow.
+name: Frontend build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege by default; only the build job may write releases/tags.
+permissions:
+  contents: read
+
+# One run per commit at a time; a rerun waits instead of racing a release upload.
+concurrency:
+  group: frontend-build-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and publish frontend assets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write # create the build-<sha> tag and release using the built-in GITHUB_TOKEN
+    env:
+      SOURCE_SHA: ${{ github.sha }}
+      RELEASE_TAG: build-${{ github.sha }}
+      ASSET: brivia-frontend-${{ github.sha }}.tar.gz
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+
+    steps:
+      - name: Check out the exact commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Check for an existing release for this commit
+        id: existing
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if ! gh release view "$RELEASE_TAG" --json isDraft,assets > release.json 2>/dev/null; then
+            echo "No release $RELEASE_TAG yet; building."
+            echo "state=missing" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          draft=$(jq -r '.isDraft' release.json)
+          names=$(jq -r '.assets[].name' release.json)
+          has_asset=false; has_sum=false
+          grep -qxF "$ASSET" <<<"$names" && has_asset=true
+          grep -qxF "$ASSET.sha256" <<<"$names" && has_sum=true
+
+          if [[ "$draft" == "false" && "$has_asset" == "true" && "$has_sum" == "true" ]]; then
+            tag_sha=$(gh api "repos/$GH_REPO/commits/$RELEASE_TAG" --jq .sha)
+            if [[ "$tag_sha" != "$SOURCE_SHA" ]]; then
+              echo "::error::Tag $RELEASE_TAG points to $tag_sha, not $SOURCE_SHA. Investigate before deploying."
+              exit 1
+            fi
+            echo "Complete release already published for this commit; nothing to do (safe rerun)."
+            echo "state=complete" >> "$GITHUB_OUTPUT"
+          elif [[ "$draft" == "true" ]]; then
+            echo "Found an unfinished draft from an earlier run; it will be replaced."
+            echo "state=draft" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Release $RELEASE_TAG is published but incomplete. Delete it manually after checking that no deployment depends on it, then rerun."
+            exit 1
+          fi
+
+      - name: Set up Node.js (version from .nvmrc)
+        if: steps.existing.outputs.state != 'complete'
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies (lockfile only)
+        if: steps.existing.outputs.state != 'complete'
+        run: npm ci --no-audit --no-fund
+
+      - name: Build production assets
+        if: steps.existing.outputs.state != 'complete'
+        run: npm run build
+
+      - name: Package assets with source SHA and checksum
+        if: steps.existing.outputs.state != 'complete'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash scripts/package-frontend.sh "$SOURCE_SHA" dist
+          # Sanity: the archive contains only build/ and the expected manifest.
+          tar -tzf "dist/$ASSET" > dist/listing.txt
+          if grep -qv '^build/' dist/listing.txt; then
+            echo "::error::Archive contains paths outside build/"; exit 1
+          fi
+          grep -qx 'build/manifest.json' dist/listing.txt
+          grep -qx 'build/build-info.json' dist/listing.txt
+          rm dist/listing.txt
+          (cd dist && sha256sum -c "$ASSET.sha256")
+
+      - name: Remove unfinished draft from an earlier run
+        if: steps.existing.outputs.state == 'draft'
+        run: gh release delete "$RELEASE_TAG" --yes
+
+      - name: Upload assets to a draft, verify, then publish
+        if: steps.existing.outputs.state != 'complete'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          # Draft first: the tag and release only become visible once every asset is uploaded.
+          gh release create "$RELEASE_TAG" \
+            --draft \
+            --target "$SOURCE_SHA" \
+            --title "Frontend build ${SOURCE_SHA:0:12}" \
+            --notes "Compiled frontend assets for commit $SOURCE_SHA. Used by scripts/deploy.sh; do not edit." \
+            "dist/$ASSET" "dist/$ASSET.sha256"
+
+          # Verify the uploaded files byte-for-byte before publishing.
+          mkdir -p verify
+          gh release download "$RELEASE_TAG" --dir verify --pattern "$ASSET" --pattern "$ASSET.sha256"
+          (cd verify && sha256sum -c "$ASSET.sha256")
+          cmp "dist/$ASSET" "verify/$ASSET"
+
+          gh release edit "$RELEASE_TAG" --draft=false --latest=false
+
+          tag_sha=$(gh api "repos/$GH_REPO/commits/$RELEASE_TAG" --jq .sha)
+          [[ "$tag_sha" == "$SOURCE_SHA" ]] || { echo "::error::Published tag points to $tag_sha"; exit 1; }
+          echo "Published $RELEASE_TAG for $SOURCE_SHA"
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### Frontend build"
+            echo "- Commit: \`$SOURCE_SHA\`"
+            echo "- Release tag: \`$RELEASE_TAG\` (state before run: ${{ steps.existing.outputs.state || 'unknown' }})"
+            echo "- Next: cPanel → Git Version Control → Update from Remote → Deploy HEAD Commit"
+          } >> "$GITHUB_STEP_SUMMARY"

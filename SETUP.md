@@ -125,7 +125,7 @@ Sign in at `/admin/login` with your email and password; you go straight to the d
 C:\php83\php.exe artisan serve --host=127.0.0.1 --port=8090   # http://127.0.0.1:8090 (development only, never production)
 npm run dev                     # optional: Vite hot reload (the CSP allows the dev server only while it runs)
 C:\php83\php.exe artisan queue:work          # sends queued email (log mailer locally); run in a second terminal
-C:\php83\php.exe artisan schedule:work       # runs the scheduler: due reminders + lost-job recovery (every minute)
+C:\php83\php.exe artisan schedule:work       # runs the scheduler: due reminders + lost-job recovery (every 5 minutes, as in production)
 ```
 
 - **Public site:** http://127.0.0.1:8090

@@ -111,7 +111,7 @@ All automatic emails go through an outbox. Each one is saved in the same databas
 
 Error text never includes email addresses or secrets. Providers can occasionally accept a message and still report an error, so a retry may rarely produce a duplicate email; business records are never duplicated.
 
-**The queue worker and scheduler must be running** (see DEPLOYMENT.md). The scheduler runs `brivia:notifications:dispatch` every minute. It sends due reminders and recovers any pending email whose job was lost.
+**The queue worker and scheduler must be running** (see DEPLOYMENT.md). In production a single cron job runs the scheduler every 5 minutes (the shared-hosting minimum). Each run executes `brivia:notifications:dispatch` and then a bounded queue worker (DEPLOYMENT.md §3.5), so emails normally leave within about 5 minutes; reminders are accurate to about 5 minutes. It sends due reminders and recovers any pending email whose job was lost.
 
 ## Deleting personal records
 
@@ -142,11 +142,12 @@ Optional variables: `BRIVIA_TEST_MYSQL_HOST`, `_PORT`, `_USERNAME` and `_PASSWOR
 
 | Task | Frequency | Owner (to be named) | Reference |
 | --- | --- | --- | --- |
-| Database + image backup (encrypted) | Daily (proposed) | Hosting/ops owner | DEPLOYMENT.md §5 |
-| Restore drill on a separate database | Before launch, then quarterly | Hosting/ops owner | DEPLOYMENT.md §5 |
+| Database + image backup (encrypted) | Daily (proposed) and automatically before every deploy | Hosting/ops owner | DEPLOYMENT.md §7 |
+| Restore drill on a separate database | Before launch, then quarterly | Hosting/ops owner | DEPLOYMENT.md §7 |
 | Check Admin → Email deliveries for failures | Daily | Operations manager | above |
 | Review staff accounts and audit log | Monthly | Owner | Admin → Staff / Audit Log |
-| `composer audit`, `npm audit`, apply patch updates | Monthly and on advisories | Developer | DEPLOYMENT.md §8 |
+| `composer audit`, `npm audit`, apply patch updates | Monthly and on advisories | Developer | DEPLOYMENT.md §9 |
+| Releases: push `main` → wait for the green *Frontend build* → cPanel *Update from Remote* → *Deploy HEAD Commit* | Per release | Developer/owner | DEPLOYMENT.md §1 |
 | Media cleanup (automatic, daily) | Scheduler | — | `brivia:media-cleanup` |
 
 ## Local demo content

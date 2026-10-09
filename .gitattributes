@@ -9,3 +9,9 @@
 /.github export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
+
+# Deployment files run on Linux (cPanel, GitHub Actions): always LF, regardless of local settings.
+*.sh text eol=lf
+.cpanel.yml text eol=lf
+.github/workflows/*.yml text eol=lf
+.env.production.example text eol=lf

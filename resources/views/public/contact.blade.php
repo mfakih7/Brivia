@@ -30,16 +30,24 @@
                     </ol>
                     <p class="text-meta mt-6 border-t border-white/10 pt-5 text-on-dark-subtle">Please don't include passwords, access keys or other confidential credentials.</p>
                 </div>
-                <div class="rounded-[20px] border border-line p-6 md:p-8">
-                    <h2 class="h-card">Other ways to reach us</h2>
-                    <ul class="mt-5 space-y-3.5">
-                        @if ($settings->email)<li><a class="btn-link" href="mailto:{{ $settings->email }}"><x-icon name="mail" size="18" /> {{ $settings->email }}</a></li>@endif
-                        @if ($settings->phone)<li><a class="btn-link" href="tel:{{ preg_replace('/[^0-9+]/', '', $settings->phone) }}"><x-icon name="phone" size="18" /> {{ $settings->phone }}</a></li>@endif
-                        @if ($settings->whatsapp_url)<li><a class="btn-link" href="{{ $settings->whatsapp_url }}" target="_blank" rel="noopener"><x-icon name="whatsapp" size="18" /> WhatsApp<span class="sr-only"> (opens in a new tab)</span></a></li>@endif
-                        <li><a class="btn-link" href="{{ route('consultation') }}"><x-icon name="calendar" size="18" /> Request a consultation time</a></li>
-                    </ul>
-                    @if ($settings->address)<p class="text-meta mt-5 flex gap-2 text-muted"><x-icon name="map-pin" size="18" />{{ $settings->address }}</p>@endif
-                </div>
+                <section class="rounded-[20px] border border-line p-5 md:p-6" aria-labelledby="reach-us">
+                    <h2 id="reach-us" class="font-display text-[1.0625rem] font-bold tracking-[-0.01em]">Other ways to reach us</h2>
+                    <div class="mt-4 grid grid-cols-2 gap-2.5">
+                        @if ($settings->email)
+                            <x-public.contact-tile icon="mail" label="Email" :value="$settings->email" :href="'mailto:'.$settings->email" />
+                        @endif
+                        @if ($settings->phone)
+                            <x-public.contact-tile icon="phone" label="Phone" :value="$settings->phone" :href="'tel:'.preg_replace('/[^0-9+]/', '', $settings->phone)" />
+                        @endif
+                        @if ($settings->whatsapp_url)
+                            <x-public.contact-tile icon="whatsapp" label="WhatsApp" value="Chat with us" :href="$settings->whatsapp_url" :external="true" />
+                        @endif
+                        <x-public.contact-tile icon="calendar" label="Consultation" value="Request a time" :href="route('consultation')" />
+                        @if ($settings->address)
+                            <x-public.contact-tile icon="map-pin" label="Location" :value="$settings->address" :wide="true" />
+                        @endif
+                    </div>
+                </section>
             </aside>
         </div>
     </section>

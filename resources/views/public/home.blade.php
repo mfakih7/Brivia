@@ -39,9 +39,9 @@
                 <x-public.section-heading eyebrow="Services" :title="$home->services_heading ?: 'Our services'" id="services-title">
                     <x-slot:action><a href="{{ route('services.index') }}" class="btn btn-secondary">All services <x-icon name="arrow-right" size="16" /></a></x-slot:action>
                 </x-public.section-heading>
-                <ol class="mt-12 border-b border-line">
-                    @foreach ($services as $service)<x-public.service-row :service="$service" :index="$loop->iteration" />@endforeach
-                </ol>
+                <div class="mt-12 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+                    @foreach ($services as $service)<x-public.service-card :service="$service" />@endforeach
+                </div>
             </div>
         </section>
     @endif

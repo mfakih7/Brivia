@@ -1,0 +1,8 @@
+---
+# cPanel → Git Version Control → "Deploy HEAD Commit" runs these tasks from the repository clone
+# (/home/fitcbfra/repositories/brivia). All logic lives in scripts/deploy.sh: it deploys the clone's
+# exact HEAD commit to /home/fitcbfra/brivia-app with the matching GitHub frontend build, and fails
+# before changing anything live if that build is not published yet. See DEPLOYMENT.md.
+deployment:
+  tasks:
+    - /bin/bash /home/fitcbfra/repositories/brivia/scripts/deploy.sh

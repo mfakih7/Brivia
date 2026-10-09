@@ -28,6 +28,14 @@ return [
         'variant_widths' => [480, 960, 1600],
     ],
 
+    'scheduler' => [
+        // Shared hosting (no daemons): run a bounded queue worker from the 5-minute scheduler.
+        // Keep false locally, where `php artisan queue:work` runs in a terminal.
+        'queue_worker' => (bool) env('BRIVIA_SCHEDULER_QUEUE_WORKER', false),
+        // Must stay below the 5-minute cron interval.
+        'queue_worker_max_seconds' => (int) env('BRIVIA_QUEUE_WORKER_MAX_SECONDS', 240),
+    ],
+
     'forms' => [
         // Submissions faster than this after the form was shown are treated as automated.
         'min_seconds' => (int) env('BRIVIA_FORM_MIN_SECONDS', 3),

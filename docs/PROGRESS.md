@@ -22,6 +22,36 @@ Manual appointment confirmation; English launch; Blade/Tailwind; no public attac
   - Affects: CLAUDE.md workflow steps 7–8, README "Five phases" and 06 shared rules 4–5.
   - **No phase is recorded as owner-reviewed or approved.** Pausing is still required when a decision or missing prerequisite genuinely prevents safe progress.
 - **2026-10-05 — Second workflow instruction (explicit owner instruction, supersedes the automatic-continuation override).** The owner instructed: *"Continue and complete Phase 3 only … Stop and wait for my explicit instruction to resume. This overrides the earlier automatic continuation instruction. Do not begin Phase 4 or Phase 5."* Effect: Phase 3 was completed and work **stopped**. Phase 4 starts only after a new explicit owner instruction.
+- **2026-10-09 — Namecheap deployment preparation (explicit owner instruction; prepared locally, nothing pushed, connected or deployed).**
+  - **Added:**
+    - `.github/workflows/frontend-build.yml`: runs on push to `main` and on manual runs; Node from `.nvmrc` (22 LTS, per Vite 8's `^20.19.0 || >=22.12.0`); `npm ci` and `npm run build`; publishes `public/build` plus `build-info.json` and SHA-256 to a **draft** release, verifies, then publishes `build-<full SHA>` using only `GITHUB_TOKEN` (`contents: write` on that job). Not marked latest; reruns are safe.
+    - `scripts/package-frontend.sh`.
+    - `.cpanel.yml`, which calls `scripts/deploy.sh`.
+    - `scripts/deploy.sh`: locked, exact-HEAD deploy; matching-SHA build only; checksum, archive-path and manifest verification; `git archive` staging; `composer install --no-dev` from the lock; pre-deploy `mysqldump`; maintenance mode; a protected `rsync --delete`; cPanel `.htaccess` handler preserved; `migrate --force`, `storage:link`, `optimize`, `queue:restart`; health check; dry-run mode.
+    - `.env.production.example`, `.nvmrc`, and `.gitattributes` LF rules for deployment files.
+    - The scheduler is aligned to 5-minute cron (dispatcher every 5 min; media cleanup at 03:10), with an opt-in bounded queue worker (`BRIVIA_SCHEDULER_QUEUE_WORKER`). New config `brivia.scheduler` and `tests/Feature/ScheduleTest.php`.
+    - `DEPLOYMENT.md` rewritten for Namecheap. `OPERATIONS.md` and `SETUP.md` updated.
+  - **Local verification:**
+    - `actionlint` and `shellcheck` are clean, and the YAML parses.
+    - Package script tested.
+    - **Deploy script run end to end** against a simulated clone, file "releases" and a separate MariaDB database (`brivia_deploytest`, dropped afterwards):
+      - 7 failure paths all stop before any change.
+      - The dry run changes nothing.
+      - First deploy, new-commit deploy and repeat deploy all succeed with health checks passing.
+      - Protected files are preserved, stale code is removed, and dev files are excluded.
+    - Two real bugs were found and fixed during the simulation: the database cache was cleared before migrations on a fresh database, and the failure summary was duplicated.
+    - `rsync` was replaced locally by a test-only stand-in (no Linux rsync on this machine), so real rsync behaviour is listed for hosting verification together with the other ⚠ items in DEPLOYMENT.md.
+  - **Repository note:** the project folder is now a Git repository (`main`, origin `github.com/mfakih7/brivia`, HEAD `0292f7b`). Nothing was committed or pushed in this step.
+- **2026-10-09 — Design refinement: service cards, Services grid, contact tiles (explicit owner instruction).**
+  - The shared `x-public.service-card` (icon tile, title, summary, always-visible "Explore service →") is used on the homepage (4 columns on desktop, 2 on tablet and phone) and the Services page (2 columns at every width, deliverables from 768px, a concise clamped summary on phones). The numbered `service-row` was removed.
+  - A new `x-public.contact-tile` provides compact two-column contact tiles (email, phone, WhatsApp, consultation, full-width location). Only configured values render, values are escaped, and emails wrap after `@` and `.`.
+  - `scroll-padding-top` was added for the sticky header. The owner mentioned attached screenshots, but none were received in the session; the work followed the written requirements.
+  - **Checks:**
+    - At 320, 375, 390, 768 and 1440px: correct column counts, 0px overflow, no clipped visible text, minimum visible card text 14px (12px only for the small tile labels), and the page heading never hidden by the sticky header (on load or at `#main`).
+    - axe: 0 violations at 1440 and 320px.
+    - New regression tests for shared cards and tiles.
+    - Production build passes.
+    - Screenshots are in `docs/screenshots/refinement/`.
 - **2026-10-09 — Public website redesign and FAQ removal (explicit owner instruction; overrides the earlier mockup and the spec 01/02 homepage and FAQ requirements where they conflict).** The owner's reference screenshot (the previous homepage hero) was reviewed.
   - **Implemented:**
     - **Button system:** pill buttons with refined padding and typography in four sizes and variants (`btn`, `btn-lg`, `btn-sm`; primary, secondary, quiet, link), visible focus and arrow hover.
