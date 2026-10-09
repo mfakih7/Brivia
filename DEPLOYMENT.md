@@ -48,7 +48,7 @@ push to main ──► GitHub Actions "Frontend build" ──► release build-<
 
 **What the workflow does:**
 - Runs on push to `main` and on manual **Run workflow**.
-- Uses the Node version in `.nvmrc` (24 LTS, which ships npm 11). Vite 8 requires `^20.19.0 || >=22.12.0`. The lockfile is maintained with npm 11, and npm 10 (Node 22) rejects it (`Missing: react@19.3.0 from lock file`), so keep CI on the same npm major as the machine that updates `package-lock.json`.
+- Uses the Node version in `.nvmrc` (24 LTS, npm 11; Vite 8 requires `^20.19.0 || >=22.12.0`). The workflow runs on Linux, so `package-lock.json` must contain every platform's optional packages. After changing dependencies on Windows, check with `npm ci --os=linux --cpu=x64` in a clean copy. If it reports `Missing: … from lock file`, delete `package-lock.json` and run `npm install --package-lock-only` to regenerate it, rather than patching it incrementally.
 - Runs `npm ci` and `npm run build`, with no `.env` and no secrets.
 - Packages only `public/build`, including a `build-info.json` that records the source SHA, plus a `.sha256` file.
 - Uploads both to a **draft** release, downloads and verifies them, then **publishes** release `build-<SHA>` with its tag pointing at that exact commit. The release is not marked "latest".
